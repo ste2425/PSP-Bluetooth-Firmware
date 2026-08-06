@@ -101,6 +101,23 @@ Clone the project.
 
 I use PlatformIO to build and upload.
 
+## Reproducible build environment
+For more deterministic builds across new machines and CI, use the following toolchain versions:
+
+- Python: 3.11.x
+- PlatformIO Core: 6.1.19
+- Click: 8.2.1
+- Espressif32 platform: 54.03.21 (pinned in `platformio.ini`)
+
+Install them with:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install "platformio==6.1.19" "click==8.2.1"
+```
+
+These versions are recommended to avoid the `click`/`esptool` compatibility issues seen with newer toolchain combinations.
+
 ### Using PlatformIO
 
 1. Using Visal Studio Code install the PlatformIO extension.
