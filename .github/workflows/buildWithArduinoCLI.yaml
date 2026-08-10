@@ -1,0 +1,32 @@
+name: Build with Arduino CLI
+
+on:
+  push:
+    branches: 
+      - 'cliMigration'
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install Board Definitions
+        run:  bash ${GITHUB_WORKSPACE}/setup.sh
+
+      - name: Compile app
+        run:  bash ${GITHUB_WORKSPACE}/compile.sh
+
+
+    #- uses: actions/upload-artifact@v4
+    #  with:
+     #   name: build
+      #  path: build/bin
+

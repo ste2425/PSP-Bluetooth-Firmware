@@ -1,0 +1,22 @@
+-update core index
+arduino-cli core update-index --config-file ./arduino-cli.yaml
+
+-search for cores
+arduino-cli core search esp32 --config-file ./arduino-cli.yaml
+
+-install esp32 core
+arduino-cli core install esp32:esp32 --config-file ./arduino-cli.yaml
+
+-install bluepad32 cores
+arduino-cli core install esp32-bluepad32:esp32 --config-file ./arduino-cli.yaml
+
+-list boards
+arduino-cli board listall | grep --ignore-case "bluepad32"
+
+--fgbn esp32-bluepad32:esp32:esp32
+
+-compile
+arduino-cli compile -b esp32-bluepad32:esp32:esp32 .
+
+-upload
+arduino-cli upload -p /dev/ttyUSB0 -b esp32-bluepad32:esp32:esp32
