@@ -24,9 +24,16 @@ jobs:
       - name: Compile app
         run:  bash ${GITHUB_WORKSPACE}/compile.sh
 
-
-    #- uses: actions/upload-artifact@v4
-    #  with:
-     #   name: build
-      #  path: build/bin
+      - name: Merge Bin
+        uses: espressif/esp-idf-ci-action@main
+        with:
+          esp_idf_version: release-v5.4
+          target: esp32
+          command: |
+            esptool.py --chip esp32 merge_bin --output build/PSP-Bluetooth-Firmware-merged.bin --flash_mode dio --flash_freq keep --flash_size 4MB 0x1000 build/PSPBluetooth-firware.ino.bootloader.bin 0x8000 build/PSPBluetooth-firware.ino.partitions.bin 0x10000 build/PSPBluetooth-firware.ino.bin
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: build
 
