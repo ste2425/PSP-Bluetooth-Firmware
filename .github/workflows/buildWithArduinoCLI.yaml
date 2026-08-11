@@ -39,6 +39,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         if: github.ref_type == 'tag'
         with:
+          prerelease: true
           working_directory: build
           files: |
             PSPBluetooth-firmware.ino.bin
