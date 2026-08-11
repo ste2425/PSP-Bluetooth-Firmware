@@ -19,6 +19,16 @@ jobs:
       - name: Install Board Definitions
         run:  bash ${GITHUB_WORKSPACE}/setup.sh
 
+      - name: Set version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="${{ github.run_number }}"
+          fi
+
+          sed -i "s/\[REPLACE\]/${VERSION}/g" PSPBluetooth-firmware/src/commands/firmwareVersion.cpp
+
       - name: Compile app
         run:  bash ${GITHUB_WORKSPACE}/compile.sh
 

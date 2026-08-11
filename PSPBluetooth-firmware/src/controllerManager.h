@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <Bluepad32.h>
+#include <TimerEvent.h>
 
 #ifdef __cplusplus
 extern "C" {

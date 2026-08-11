@@ -2,12 +2,18 @@
 
 ControllerPtr controllers[BP32_MAX_GAMEPADS];
 
+// BP32 default to accepting new connections
+// we need to disable that after a small deay to allow it to finish its config
+TimerEvent setupDisableNewConsTimers;
+
+// hoisting baby - Is it called hoisting when not writing JS?
 void onConnectedController(ControllerPtr ctl);
 void onDisconnectedController(ControllerPtr ctl);
 void processControllers();
 void resetController(uint8_t index);
 void processControllers();
 void processGamepad(uint8_t index, ControllerPtr ctl);
+void onSetupDisableNewConsTimers();
 
 void controllerManagerSetup(void) {
     BP32.setup(&onConnectedController, &onDisconnectedController);
@@ -15,6 +21,8 @@ void controllerManagerSetup(void) {
     BP32.enableVirtualDevice(false);
 
     BP32.enableBLEService(false);
+
+    setupDisableNewConsTimers.set(500, onSetupDisableNewConsTimers);
 }
 
 void controllerManagerForgetBluetoothKeys(void) {
@@ -23,9 +31,13 @@ void controllerManagerForgetBluetoothKeys(void) {
 
 void controllerManagerLoop(void) {
     BP32.update();
+    setupDisableNewConsTimers.update();
 }
 
 void controllerManagerEnableNewConnections() {
+    // Id be supprised if this is called before the timer runs but just incase lets stop the timer
+    setupDisableNewConsTimers.disable();
+
     BP32.enableNewBluetoothConnections(true);
 }
 
@@ -66,4 +78,10 @@ void onDisconnectedController(ControllerPtr ctl) {
             break;
         }
     }
+}
+
+void onSetupDisableNewConsTimers() {
+    setupDisableNewConsTimers.disable();
+
+    controllerManagerDisableNewConnections();
 }

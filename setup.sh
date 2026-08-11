@@ -8,3 +8,6 @@ arduino-cli core install esp32:esp32 --config-file ./arduino-cli.yaml
 
 # install Bluepad32 board definition
 arduino-cli core install esp32-bluepad32:esp32 --config-file ./arduino-cli.yaml
+
+# install libraries
+arduino-cli lib install TimerEvent@0.5.0 --config-file ./arduino-cli.yaml
