@@ -1,139 +1,149 @@
-# PSP Bluetooth *Firmware*
-
-This is the firmware for a ESP32 based module to act as the bridge between the PSP and Bluetooth Controllers.
-
-It is a PlatformIO project and powered by the great [BluePad32 Library](https://bluepad32.readthedocs.io/en/latest) and is based on the [template](https://github.com/ricardoquesada/esp-idf-arduino-bluepad32-template.git) project.
-
-## The PSP Bluetooth Project
-
-This is a part of the PSP Bluetooth project, to find information on the other components that make up this project please look here: https://github.com/psp-bluetooth
-
-## Acknowledgements
-
-The work ive done is just a thin layer ontop of work many other people have done, Iv'e also had lots of help from others.
-
-* TokyoDrift - Originally created work that uses the SIO port to allow external controllers back around 2010. Since uploaded to [Github](https://github.com/unraze/PSXControllerToPSP)
-* OPDitto project - A project that uses the SIO port to allow for a real second analog stick. Its SIO implementation has been extremly helpful to me. Repo [Here](https://github.com/Operation-DITTO)
-* X41 - Shared an initial working SIO hello world app back when i could barely compile PSP code. This was invaluable in helping me get the hardware working right at the start of the project.
-* PSP Homebrew Discord - Full if incredibly smart and helpful people too many to list individually. Without their help I'd never have managed to complete any of this.
-
-## How does it work?
-This works by exposing a series of commands which will perform actions such as disconnecting controllers or returning the state of a specific controller.
-
-`Serial2` is used for the communication with the PSP.
-
-| RX | TX |
-| -- | -- |
-| GPIO-18 | GPIO-16 |
-
-## Commands
-
-The protocol works by the PSP issueing a command byte to the ESP32. The ESP decides what to do based on this command byte. The PSP may also send extra request data such as RGB values or a controller index etc.
-
-Every command responds first with a status byte then a fixed number of response bytes depending on the specific command.
-
-Below lists all the commands, any Request data they expect from the PSP and their repsonses.
-
-**Note:** If an error status byte (such as `[0xA]` or `[0xB]`) is returned, **no further data will follow** that byte.
-
-| Command Byte | Description | Request Bytes | Response Bytes |
-|--------------|-------------|--------------|---------------|
-| `0x0C` | Get Firmware Version<br>Returns a semver string for the firmware version. | _None_ | `[0x17, <len>, <version string bytes>]`<br>Example: `[0x17, 5, '1','.','2','.','3']`<br>**If error:** `[0xA]` (no further data) |
-| `0x02` | Ping Command<br>Detect if the ESP32 is connected. | _None_ | `[0x10]` |
-| `0x03` | Request Controller Data<br>Get state of a controller at a given index.<br>Analog stick values: 0-255. | `[ControllerIndexByte]` | `[0xA]` if request data not received (**no further data**)<br>`[0xB]` if controller not connected (**no further data**)<br>`[0xC, <Analog RX>, <Analog RY>, <Analog LX>, <Analog LY>, <Dpad>, <Buttons High>, <Buttons Low>, <Misc Buttons High>, <Misc Buttons Low>]` if successful. For values see [Bit Masks](#bit-masks) |
-| `0x04` | Enable New Connections<br>Allow pairing for new controllers. | _None_ | `[0x11]` |
-| `0x05` | Disable New Connections<br>Prevent pairing of new controllers. | _None_ | `[0x1]` |
-| `0x06` | Disconnect Controller<br>Disconnect and turn off specified controller. | `[ControllerIndexByte]` | `[0xA]` if request data not received (**no further data**)<br>`[0xB]` if controller not connected (**no further data**)<br>`[0x13]` if successful |
-| `0x07` | Set Controller LED Colour<br>Set LED color and brightness for supported controllers.<br>Color values: 0-255. | `[ControllerIndexByte, RedValueByte, GreenValueByte, BlueValueByte]` | `[0xA]` if request data not received (**no further data**)<br>`[0xB]` if controller not connected (**no further data**)<br>`[0xD]` if successful |
-| `0x08` | Set Controller Vibration<br>Set vibration magnitude and duration.<br>Delay/duration in ms, magnitude: 0-255. | `[ControllerIndexByte, Delay MS Low, Delay MS High, Duration MS Low, Duration MS High, WeakMagnitude, StrongMagnitude]` | `[0xA]` if request data not received (**no further data**)<br>`[0xB]` if controller not connected (**no further data**)<br>`[0xE]` if successful |
-| `0x09` | Get Controller Information<br>Get type and battery level of controller.<br>Battery: 0 (unknown) to 255 (full). | `[ControllerIndexByte]` | `[0xA]` if request data not received (**no further data**)<br>`[0xB]` if controller not connected (**no further data**)<br>`[0xF, <Controller Type>, <Battery Level>]` if successful. For values see [Bit Masks](#bit-masks) |
-| `0x0A` | Forget Bluetooth Keys<br>Unpair all existing controllers. | _None_ | `[0x14]` |
-| `0x0B` | Set Player LED<br>Set player indicator LEDs. | `[ControllerIndexByte, PlayerNumberByte]` | `[0xA]` if request data not received (**no further data**)<br>`[0xB]` if controller not connected (**no further data**)<br>`[0x15]` if successful. For values see [Bit Masks](#bit-masks) |
-
-**Error Status Bytes:**  
-- `[0xA]` — Request data not received (no further data returned)  
-- `[0xB]` — Controller not connected (no further data returned)
-- `[0x17]` - Command was not found (no further data returned)
+# PSP Bluetooth Firmware
 
 ---
 
-## Bit Masks
-The state of indivudual buttons is done by using specific bits in the response bytes.
+⚠️ **AI and stuff** This ReadME was written with AI based on the code base because im lazy and dont like writing documentation. 
 
-The following mask values can be used to get the different controller button states.
+Iv'e at least read it.
 
-| Mask Value | Button |
-| -- | -- |
-| -- | **DPAD Masks** |
-| 0x1 | Dpad up |
-| 0x2 | Dpad down |
-| 0x4 | Dpad Left |
-| 0x5 | dpad Right |
-| -- | **Button Masks** |
-| 0x1 | Cross Button |
-| 0x2 | Circle Button |
-| 0x4 | Square Button |
-| 0x8 | Triangle Button |
-| 0x10 | L1 Button |
-| 0x40 | L2 Button |
-| 0x100 | L3 Button |
-| 0x20 | R1 Button |
-| 0x80 | R2 Button |
-| 0x200 | R3 Button |
-| -- | **Misc Button Masks** |
-| 0x1 | System Misc Button |
-| 0x2 | Capture Misc Button |
-| 0x4 | Start Misc Button |
-| 0x8 | Select Misc Button |
-| -- | **Player LED Masks** |
-| 0x1 | Player One LED |
-| 0x2 | Player Two LED |
-| 0x4 | Player Three LED |
-| 0x8 | Player Four LED |
+---
 
-## Controller Types
+This firmware turns an ESP32 module into a bridge between a PSP and Bluetooth controllers. It uses the BluePad32 library and communicates with the PSP over Serial2.
 
-## How to compile it
+This project is part of the PSP Bluetooth ecosystem. More information about the wider project is available at https://github.com/psp-bluetooth.
 
-Clone the project. 
+## Overview
 
-`git clone --recursive git@github.com:ste2425/PSP-Bluetooth-Firmware.git`
+The firmware exposes a small serial command protocol that the PSP can use to:
 
-I use PlatformIO to build and upload.
+- query controller state
+- disconnect controllers
+- change LED and vibration settings
+- enable or disable new Bluetooth pairings
+- retrieve firmware version information
 
-## Reproducible build environment
-For more deterministic builds across new machines and CI, use the following toolchain versions:
+The serial link uses Serial2 with the following pins:
 
-- Python: 3.11.x
-- PlatformIO Core: 6.1.19
-- Click: 8.2.1
-- Espressif32 platform: 54.03.21 (pinned in `platformio.ini`)
+| Signal | GPIO |
+| --- | --- |
+| RX | 18 |
+| TX | 16 |
 
-Install them with:
+The firmware runs at 115200 baud.
+
+## Building and uploading
+
+This project now uses Arduino CLI rather than PlatformIO. The only required dependency for a user is Arduino CLI itself. The build scripts handle the board package installation for you.
+
+### Prerequisites
+
+Install Arduino CLI and ensure it is available on your PATH.
+
+### Quick start
+
+From the repository root, run:
 
 ```bash
-python -m pip install --upgrade pip
-python -m pip install "platformio==6.1.19" "click==8.2.1"
+./setup.sh
+./compile.sh
+./upload.sh
 ```
 
-These versions are recommended to avoid the `click`/`esptool` compatibility issues seen with newer toolchain combinations.
+### What the scripts do
 
-### Using PlatformIO
+- `setup.sh` updates the board index and installs the ESP32 and BluePad32 board packages using the configuration in `arduino-cli.yaml`.
+- `compile.sh` builds the firmware for the `esp32-bluepad32:esp32:esp32` board.
+- `upload.sh` uploads the built firmware to `/dev/ttyUSB0`.
 
-1. Using Visal Studio Code install the PlatformIO extension.
-2. Open the extension in the left hand menu.
-2. Click on "Pick a folder", and select the recently cloned project
+If your ESP32 is connected to a different device, update the port in `upload.sh` before running it.
 
-Let PlatformIO download the ESP-IDF toolchain and its dependencies.
-This can take some time.
+## Acknowledgements
 
-*Note: You may have to remove previously installed PlatformIO packages. Run `rm -rf ~/.platformio`
-and reinstall PlatformIO.*
+The work here builds on earlier contributions from several people and projects.
 
-Once all installed:
+- TokyoDrift - early work using the PSP SIO port to relay controller input.
+- OPDitto - work that helped with SIO handling and analog stick support.
+- X41 - shared an early working SIO hello-world example that helped get the hardware working.
+- PSP Homebrew Discord - a source of guidance and troubleshooting help.
 
-1. Click on one of the pre-created boards, like `esp32dev`. Or edit `platformio.ini` file, and add your own.
-2. Click on *build*
+---
 
-*Note*. Clicking upload should first do a build if you want to build and upload.
+## Developer notes
+
+### Command protocol
+
+The PSP sends a single command byte to the ESP32. The firmware then reads any additional request bytes required by that command and replies with either:
+
+- a status byte only, or
+- a status byte followed by payload bytes
+
+If an error status byte is returned, no further data follows.
+
+### Error status bytes
+
+- `0x0A` - request data was not received
+- `0x0B` - controller was not found or is not connected
+- `0x17` - command was not recognized
+
+### Command reference
+
+| Command byte | Description | Request bytes | Response bytes |
+| --- | --- | --- | --- |
+| `0x02` | Ping | None | `0x10` |
+| `0x03` | Request controller data | `[controllerIndex]` | `0x0C`, `<analogRX>`, `<analogRY>`, `<analogLX>`, `<analogLY>`, `<dpad>`, `<buttonsHigh>`, `<buttonsLow>`, `<miscHigh>`, `<miscLow>` |
+| `0x04` | Enable new connections | None | `0x11` |
+| `0x05` | Disable new connections | None | `0x12` |
+| `0x06` | Disconnect controller | `[controllerIndex]` | `0x13` |
+| `0x07` | Set controller LED colour | `[controllerIndex, red, green, blue]` | `0x0D` |
+| `0x08` | Set controller vibration | `[controllerIndex, delayLow, delayHigh, durationLow, durationHigh, weakMagnitude, strongMagnitude]` | `0x0E` |
+| `0x09` | Get controller information | `[controllerIndex]` | `0x0F`, `<controllerType>`, `<batteryLevel>` |
+| `0x0A` | Forget Bluetooth keys | None | `0x14` |
+| `0x0B` | Set player LEDs | `[controllerIndex, playerNumber]` | `0x15` |
+| `0x0C` | Get firmware version | None | `0x16`, `<length>`, `<versionString>` |
+
+### Response byte reference
+
+- `0x0C` - controller data response
+- `0x0D` - LED update accepted
+- `0x0E` - vibration update accepted
+- `0x0F` - controller info response
+- `0x10` - ping response
+- `0x11` - new connections enabled
+- `0x12` - new connections disabled
+- `0x13` - controller disconnected
+- `0x14` - Bluetooth keys forgotten
+- `0x15` - player LED update accepted
+- `0x16` - firmware version response
+- `0x17` - command not found
+
+### Button and LED bit masks
+
+The state bytes returned by controller data use bitmasks for button and LED state.
+
+| Mask value | Meaning |
+| --- | --- |
+| `0x01` | D-pad up |
+| `0x02` | D-pad down |
+| `0x04` | D-pad left |
+| `0x08` | D-pad right |
+| `0x01` | Cross |
+| `0x02` | Circle |
+| `0x04` | Square |
+| `0x08` | Triangle |
+| `0x10` | L1 |
+| `0x20` | R1 |
+| `0x40` | L2 |
+| `0x80` | R2 |
+| `0x100` | L3 |
+| `0x200` | R3 |
+| `0x01` | System |
+| `0x02` | Capture |
+| `0x04` | Start |
+| `0x08` | Select |
+| `0x01` | Player 1 LED |
+| `0x02` | Player 2 LED |
+| `0x04` | Player 3 LED |
+| `0x08` | Player 4 LED |
+
+The currently hardcoded firmware version string exposed by the firmware is `v1.0.0`.
 

@@ -2,8 +2,6 @@ name: Build with Arduino CLI
 
 on:
   push:
-    branches: 
-      - 'cliMigration'
   workflow_dispatch:
 
 jobs:
@@ -30,10 +28,21 @@ jobs:
           esp_idf_version: release-v5.4
           target: esp32
           command: |
-            esptool.py --chip esp32 merge_bin --output build/PSP-Bluetooth-Firmware-merged.bin --flash_mode dio --flash_freq keep --flash_size 4MB 0x1000 build/PSPBluetooth-firware.ino.bootloader.bin 0x8000 build/PSPBluetooth-firware.ino.partitions.bin 0x10000 build/PSPBluetooth-firware.ino.bin
+            esptool.py --chip esp32 merge_bin --output build/PSP-Bluetooth-Firmware-merged.bin --flash_mode dio --flash_freq keep --flash_size 4MB 0x1000 build/PSPBluetooth-firmware.ino.bootloader.bin 0x8000 build/PSPBluetooth-firmware.ino.partitions.bin 0x10000 build/PSPBluetooth-firmware.ino.bin
       
       - uses: actions/upload-artifact@v4
         with:
           name: build
           path: build
+
+      - name: Release
+        uses: softprops/action-gh-release@v3
+        if: github.ref_type == 'tag'
+        with:
+          working_directory: build
+          files: |
+            PSPBluetooth-firmware.ino.bin
+            PSPBluetooth-firmware.ino.bootloader.bin
+            PSPBluetooth-firmware.ino.partitions.bin
+            PSP-Bluetooth-Firmware-merged.bin
 
